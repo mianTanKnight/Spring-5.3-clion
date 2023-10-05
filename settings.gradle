@@ -1,8 +1,15 @@
 pluginManagement {
 	repositories {
-		mavenCentral()
+		mavenLocal()
+		maven { url 'https://maven.aliyun.com/repository/spring/' }
+		maven { url 'https://maven.aliyun.com/repository/public/' }
+		maven { url 'https://maven.aliyun.com/repository/jcenter/' }
+		maven { url 'https://maven.aliyun.com/repository/google/' }
+		maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+		maven { url 'https://jitpack.io/' }
+//		mavenCentral()
 		gradlePluginPortal()
-		maven { url "https://repo.spring.io/release" }
+		maven { url 'https://repo.spring.io/release' }
 	}
 }
 
@@ -55,3 +62,5 @@ settings.gradle.projectsLoaded {
 		}
 	}
 }
+include 'learning'
+

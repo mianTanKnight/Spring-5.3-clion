@@ -58,6 +58,10 @@ import org.springframework.lang.Nullable;
  * @see org.springframework.beans.factory.BeanFactoryAware
  * @see org.springframework.beans.factory.config.ConfigurableListableBeanFactory
  * @see org.springframework.context.ApplicationContext#getAutowireCapableBeanFactory()
+ * AutowireCapableBeanFactory 的设计目标是提供一种机制，
+ * 使得 Spring 可以管理和装配那些并不由 Spring 控制生命周期的现有 bean 实例1。这样，即使这些 bean 不在 IOC 容器中，
+ * 也可以享受到 Spring 的依赖注入和其他管理功能1。
+ * 这对于整合其他框架和处理特殊情况非常有用。希望这个解释能帮助您理解 AutowireCapableBeanFactory 的设计目的
  */
 public interface AutowireCapableBeanFactory extends BeanFactory {
 
@@ -67,6 +71,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * @see #createBean
 	 * @see #autowire
 	 * @see #autowireBeanProperties
+	 * 没有外部自动装配
 	 */
 	int AUTOWIRE_NO = 0;
 
@@ -76,6 +81,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * @see #createBean
 	 * @see #autowire
 	 * @see #autowireBeanProperties
+	 * 按名称自动装配
 	 */
 	int AUTOWIRE_BY_NAME = 1;
 
@@ -85,6 +91,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * @see #createBean
 	 * @see #autowire
 	 * @see #autowireBeanProperties
+	 * 按类型自动装配
 	 */
 	int AUTOWIRE_BY_TYPE = 2;
 
@@ -93,6 +100,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * can be satisfied (involves resolving the appropriate constructor).
 	 * @see #createBean
 	 * @see #autowire
+	 * 按构造方面自动注入
 	 */
 	int AUTOWIRE_CONSTRUCTOR = 3;
 
@@ -135,6 +143,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * @param beanClass the class of the bean to create
 	 * @return the new bean instance
 	 * @throws BeansException if instantiation or wiring failed
+	 * 完整的创建ioc Bean 包括完整的初始化动作
 	 */
 	<T> T createBean(Class<T> beanClass) throws BeansException;
 
@@ -147,6 +156,9 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 * use {@link #autowireBeanProperties} for those purposes.
 	 * @param existingBean the existing bean instance
 	 * @throws BeansException if wiring failed
+	 * 这个方法通常用于处理已经存在的bean实例，可以是新创建的实例或反序列化得到的实例。
+	 * 它的主要用途是重新填充已存在的bean的注解字段和方法，以确保它们的依赖关系和其他属性都已正确设置。
+	 * 它不涉及传统的按名称或按类型自动装配属性的过程，如果需要进行这种自动装配，可以使用其他方法，如"autowireBeanProperties"。
 	 */
 	void autowireBean(Object existingBean) throws BeansException;
 

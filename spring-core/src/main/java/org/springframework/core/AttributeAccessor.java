@@ -29,7 +29,7 @@ import org.springframework.util.Assert;
  * @author Sam Brannen
  * @since 2.0
  */
-public interface AttributeAccessor {
+public interface AttributeAccessor { //属性访问的规范
 
 	/**
 	 * Set the attribute defined by {@code name} to the supplied {@code value}.

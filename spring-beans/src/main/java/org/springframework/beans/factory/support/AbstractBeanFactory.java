@@ -117,33 +117,50 @@ import org.springframework.util.StringValueResolver;
  * @see #createBean
  * @see AbstractAutowireCapableBeanFactory#createBean
  * @see DefaultListableBeanFactory#getBeanDefinition
+ *
+ * IOC的标准实现:
+ * 但先明白beanInstance / beanFactory / rootBeanDefinition 的设计于关联
+ * beanInstance是一个具体bean的具体实体:
+ * 运行时已完成创建的java bean实体(完整的包括业务)
+ * beanInstance是由 beanFactory 创建并提供的
+ * beanFoctry是ioc提供方实现的标准接口 负责Bean创建
+ * beanFactry是 负责加载,创建, 配置Bean 包括 RootBeanDefinition，用于存储Bean的配置信息
+ * 当你通过 beanFactory 请求一个Bean时，它会根据Bean的定义信息（包括 RootBeanDefinition）来创建相应的 beanInstance。
+ * RootBeanDefinition（根Bean定义）：
+ *
+ * RootBeanDefinition 是Spring框架中用于表示Bean的配置信息的类，包括Bean的类名、属性、依赖关系等。
+ * RootBeanDefinition 主要用于描述应用程序中的原始Bean配置，通常是根级别的Bean定义。
+ * RootBeanDefinition 存储在 beanFactory 的注册表中，当你请求一个Bean时，
+ * beanFactory 会根据相应的 RootBeanDefinition 来创建对应的 beanInstance。
+ *
+ *
  */
 public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory {
 
 	/** Parent bean factory, for bean inheritance support. */
 	@Nullable
-	private BeanFactory parentBeanFactory;
+	private BeanFactory parentBeanFactory; //遗产支持??
 
 	/** ClassLoader to resolve bean class names with, if necessary. */
 	@Nullable
-	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
+	private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader(); //类加载器
 
 	/** ClassLoader to temporarily resolve bean class names with, if necessary. */
 	@Nullable
-	private ClassLoader tempClassLoader;
+	private ClassLoader tempClassLoader; //临类加载器
 
 	/** Whether to cache bean metadata or rather reobtain it for every access. */
-	private boolean cacheBeanMetadata = true;
+	private boolean cacheBeanMetadata = true; //是否缓存元数据
 
 	/** Resolution strategy for expressions in bean definition values. */
 	@Nullable
-	private BeanExpressionResolver beanExpressionResolver;
+	private BeanExpressionResolver beanExpressionResolver; //异常封装
 
 	/** Spring ConversionService to use instead of PropertyEditors. */
 	@Nullable
-	private ConversionService conversionService;
+	private ConversionService conversionService; //表达式转义
 
-	/** Custom PropertyEditorRegistrars to apply to the beans of this factory. */
+	/** Custom PropertyEditorRegistrars to apply to the beans of this factory.属性转换器 */
 	private final Set<PropertyEditorRegistrar> propertyEditorRegistrars = new LinkedHashSet<>(4);
 
 	/** Custom PropertyEditors to apply to the beans of this factory. */
@@ -159,7 +176,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	/** BeanPostProcessors to apply. */
 	private final List<BeanPostProcessor> beanPostProcessors = new BeanPostProcessorCacheAwareList();
 
-	/** Cache of pre-filtered post-processors. */
+	/** Cache of pre-filtered post-processors. 多个后置处理的Cache */
 	@Nullable
 	private BeanPostProcessorCache beanPostProcessorCache;
 
@@ -170,13 +187,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	@Nullable
 	private SecurityContextProvider securityContextProvider;
 
-	/** Map from bean name to merged RootBeanDefinition. */
+	/** Map from bean name to merged RootBeanDefinition. RootBeanfinition*/
 	private final Map<String, RootBeanDefinition> mergedBeanDefinitions = new ConcurrentHashMap<>(256);
 
 	/** Names of beans that have already been created at least once. */
 	private final Set<String> alreadyCreated = Collections.newSetFromMap(new ConcurrentHashMap<>(256));
 
-	/** Names of beans that are currently in creation. */
+	/** Names of beans that are currently in creation.
+	 * 当一个原型作用域的Bean正在创建时，它会将自己的名称放入prototypesCurrentlyInCreation中,
+	 * 如果在创建过程中需要依赖其他原型作用域的Bean，会检查prototypesCurrentlyInCreation中是否已经包含了该Bean的名称，
+	 * 如果包含了，就说明存在循环依赖，Spring会进行相应的处理，通常是抛出异常或者采取其他措施来解决循环依赖问题。
+	 * */
 	private final ThreadLocal<Object> prototypesCurrentlyInCreation =
 			new NamedThreadLocal<>("Prototype beans currently in creation");
 
@@ -229,7 +250,6 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 */
 	public <T> T getBean(String name, @Nullable Class<T> requiredType, @Nullable Object... args)
 			throws BeansException {
-
 		return doGetBean(name, requiredType, args, false);
 	}
 
@@ -252,9 +272,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		String beanName = transformedBeanName(name);
 		Object beanInstance;
 
-		// Eagerly check singleton cache for manually registered singletons.
+		// Eagerly check singleton cache for manually registered singletons.主动检查单例缓存
 		Object sharedInstance = getSingleton(beanName);
-		if (sharedInstance != null && args == null) {
+		if (sharedInstance != null && args == null) { //如果存在缓存并不需要参数校验
 			if (logger.isTraceEnabled()) {
 				if (isSingletonCurrentlyInCreation(beanName)) {
 					logger.trace("Returning eagerly cached instance of singleton bean '" + beanName +
@@ -1850,9 +1870,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	/**
 	 * Get the object for the given bean instance, either the bean
 	 * instance itself or its created object in case of a FactoryBean.
-	 * @param beanInstance the shared bean instance
-	 * @param name the name that may include factory dereference prefix
-	 * @param beanName the canonical bean name
+	 * @param beanInstance the shared bean instance bean的实体
+	 * @param name the name that may include factory dereference prefix 原始beanName
+	 * @param beanName the canonical bean name  解析后的name
 	 * @param mbd the merged bean definition
 	 * @return the object to expose for the bean
 	 */
@@ -1860,7 +1880,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
 		// Don't let calling code try to dereference the factory if the bean isn't a factory.
-		if (BeanFactoryUtils.isFactoryDereference(name)) {
+		if (BeanFactoryUtils.isFactoryDereference(name)) { //如果名称是beanFactory前缀
 			if (beanInstance instanceof NullBean) {
 				return beanInstance;
 			}
@@ -1876,11 +1896,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		// Now we have the bean instance, which may be a normal bean or a FactoryBean.
 		// If it's a FactoryBean, we use it to create a bean instance, unless the
 		// caller actually wants a reference to the factory.
-		if (!(beanInstance instanceof FactoryBean)) {
+		if (!(beanInstance instanceof FactoryBean)) { //如果是normal bean就之间返回d
 			return beanInstance;
 		}
 
-		Object object = null;
+		Object object = null;  // FactoryBean
 		if (mbd != null) {
 			mbd.isFactoryBean = true;
 		}
@@ -1937,6 +1957,19 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @see RootBeanDefinition#getDependsOn
 	 * @see #registerDisposableBean
 	 * @see #registerDependentBean
+	 * 在Spring中，"根级别的Bean定义" 不是针对业务逻辑的，而是关于配置管理的。这个概念是用来描述如何定义和组织Spring Bean配置的方式。
+	 * 它与具体的业务逻辑无关，而是涉及到如何在Spring配置中定义Bean。
+	 * 考虑以下情况：
+	 * 你有一个Spring应用程序，需要管理多个Bean，包括服务类、数据访问对象、数据源等等。
+	 * 为了配置这些Bean，你需要在Spring配置文件中定义它们的信息，包括类名、属性、依赖关系等。
+	 * 那么问题来了，如何组织这些Bean的定义信息呢？是将它们都定义在同一个配置文件中，还是将它们拆分到不同的配置文件中？
+	 * "根级别的Bean定义" 的概念就是用来帮助你组织这些Bean定义的方式。它指的是将一些关键的、
+	 * 核心的Bean定义放在一个配置文件中，这些Bean定义通常是整个应用程序的基础。这个配置文件可以被认为是应用程序的主要配置。
+	 * 例如，你可以将数据源（DataSource）、事务管理器（TransactionManager）、用户服务（UserService）等重要的Bean定义放在一个配置文件中，
+	 * 这些Bean定义通常是整个应用程序的核心组件。这些就是 "根级别的Bean定义"。
+	 * 然后，你可以根据需要将其他Bean定义放在不同的配置文件中，这些Bean可能依赖于根级别的Bean来完成具体的业务逻辑。
+	 * 总之，"根级别的Bean定义" 是一种用于组织和管理Spring Bean配置的方式，它不是与具体的业务逻辑相关的概念。
+	 * 它有助于使配置更加清晰、可维护，并且通常用于表示应用程序的核心组件。
 	 */
 	protected void registerDisposableBeanIfNecessary(String beanName, Object bean, RootBeanDefinition mbd) {
 		AccessControlContext acc = (System.getSecurityManager() != null ? getAccessControlContext() : null);
@@ -2116,7 +2149,19 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 	/**
 	 * Internal cache of pre-filtered post-processors.
+	 *BeanPostProcessorCache类中，有四个成员变量，每个成员变量代表一种特定类型的Bean后置处理器，分别是：
 	 *
+	 * instantiationAware：这是一个InstantiationAwareBeanPostProcessor类型的列表，它用于缓存实现InstantiationAwareBeanPostProcessor接口的Bean后置处理器。
+	 * 这些后置处理器在Bean实例化阶段起作用，允许在Bean对象创建之前和之后进行自定义操作。
+	 *
+	 * smartInstantiationAware：这是一个SmartInstantiationAwareBeanPostProcessor类型的列表，
+	 * 它用于缓存实现SmartInstantiationAwareBeanPostProcessor接口的Bean后置处理器。与上一个列表类似，这些后置处理器也在Bean实例化阶段发挥作用，但具有更多的智能化特性，可以干预Bean的实例化方式。
+	 *
+	 * destructionAware：这是一个DestructionAwareBeanPostProcessor类型的列表，它用于缓存实现DestructionAwareBeanPostProcessor接口的Bean后置处理器。这些后置处理器在Bean销毁阶段起作用，允许在Bean销毁之前和之后执行自定义清理操作。
+	 *
+	 * mergedDefinition：这是一个MergedBeanDefinitionPostProcessor类型的列表，它用于缓存实现MergedBeanDefinitionPostProcessor接口的Bean后置处理器。这些后置处理器在Bean定义合并（MergedBeanDefinition）阶段起作用，通常用于修改或扩展Bean的元数据信息。
+	 *
+	 * 总之，BeanPostProcessorCache类的作用是在Spring容器中管理并缓存不同类型的Bean后置处理器，这些后置处理器可以在Bean的生命周期不同阶段插入自定义逻辑，以实现各种高级功能和扩展点。这有助于实现Spring框架的灵活性和可扩展性。
 	 * @since 5.3
 	 */
 	static class BeanPostProcessorCache {

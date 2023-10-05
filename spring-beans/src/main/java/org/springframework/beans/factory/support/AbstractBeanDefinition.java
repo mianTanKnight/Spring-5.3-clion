@@ -100,14 +100,36 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	public static final int AUTOWIRE_AUTODETECT = AutowireCapableBeanFactory.AUTOWIRE_AUTODETECT;
 
 	/**
+	 * 依赖检查级别
+	 *  依赖检查是指在创建和初始化一个对象（通常是一个Bean）时，检查它所依赖的其他对象或属性是否已经正确设置和可用。
+	 *  依赖检查的主要目的是确保对象在被使用之前具备了正确的配置和依赖关系，以避免在运行时出现错误或异常。
+	 *
+	 * 属性依赖检查：检查一个对象的属性是否已经设置。这包括检查属性是否为null或具有有效值。
+	 * 如果某个属性是必需的，但未设置，那么依赖检查可能会抛出异常或警告。
+	 *
+	 * 依赖Bean检查：对于通过依赖注入引用的其他Bean，检查这些Bean是否已经正确创建和配置。
+	 * 如果依赖的Bean无法找到或者没有被正确初始化，依赖检查可能会抛出异常。
+	 *
+	 * 依赖关系完整性检查：确保整个依赖关系图形（Dependency Graph）是完整和一致的。
+	 * 这包括检查循环依赖，避免不一致的依赖关系等。
+	 *
+	 * 类型匹配检查：检查依赖对象的类型是否与预期的类型匹配。
+	 * 如果类型不匹配，依赖检查可能会导致类型转换错误。
+	 *
+	 * 资源依赖检查：检查依赖的外部资源是否可用，例如数据库连接、文件、网络资源等。
+	 */
+
+	/**
 	 * Constant that indicates no dependency check at all.
 	 * @see #setDependencyCheck
+	 * 不进行依赖检查
 	 */
 	public static final int DEPENDENCY_CHECK_NONE = 0;
 
 	/**
 	 * Constant that indicates dependency checking for object references.
 	 * @see #setDependencyCheck
+	 * 检查依赖对象
 	 */
 	public static final int DEPENDENCY_CHECK_OBJECTS = 1;
 
@@ -115,6 +137,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * Constant that indicates dependency checking for "simple" properties.
 	 * @see #setDependencyCheck
 	 * @see org.springframework.beans.BeanUtils#isSimpleProperty
+	 * 简单检查
 	 */
 	public static final int DEPENDENCY_CHECK_SIMPLE = 2;
 
@@ -122,6 +145,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * Constant that indicates dependency checking for all properties
 	 * (object references as well as "simple" properties).
 	 * @see #setDependencyCheck
+	 * 全面的依赖检查
 	 */
 	public static final int DEPENDENCY_CHECK_ALL = 3;
 
@@ -139,31 +163,31 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 
 	@Nullable
-	private volatile Object beanClass;
+	private volatile Object beanClass; //class 对象
 
 	@Nullable
-	private String scope = SCOPE_DEFAULT;
+	private String scope = SCOPE_DEFAULT; //域 默认是" "
 
-	private boolean abstractFlag = false;
-
-	@Nullable
-	private Boolean lazyInit;
-
-	private int autowireMode = AUTOWIRE_NO;
-
-	private int dependencyCheck = DEPENDENCY_CHECK_NONE;
+	private boolean abstractFlag = false; //不是抽象类
 
 	@Nullable
-	private String[] dependsOn;
+	private Boolean lazyInit; //是否懒加载
 
-	private boolean autowireCandidate = true;
+	private int autowireMode = AUTOWIRE_NO; //自动注入模型 默认没有外部自动装配
 
-	private boolean primary = false;
+	private int dependencyCheck = DEPENDENCY_CHECK_NONE;  //默认不检查依赖
+
+	@Nullable
+	private String[] dependsOn; //所依赖的beans
+
+	private boolean autowireCandidate = true;  // 标识一个 Bean 是否可以作为自动装配的候选项
+
+	private boolean primary = false; //是否为主用
 
 	private final Map<String, AutowireCandidateQualifier> qualifiers = new LinkedHashMap<>();
 
 	@Nullable
-	private Supplier<?> instanceSupplier;
+	private Supplier<?> instanceSupplier; // instance的生成者
 
 	private boolean nonPublicAccessAllowed = true;
 
@@ -176,23 +200,25 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	private String factoryMethodName;
 
 	@Nullable
-	private ConstructorArgumentValues constructorArgumentValues;
+	private ConstructorArgumentValues constructorArgumentValues; //bean的构造参数
 
 	@Nullable
-	private MutablePropertyValues propertyValues;
+	private MutablePropertyValues propertyValues; // bean的属性
 
-	private MethodOverrides methodOverrides = new MethodOverrides();
-
-	@Nullable
-	private String initMethodName;
+	private MethodOverrides methodOverrides = new MethodOverrides(); //方法重写？
 
 	@Nullable
-	private String destroyMethodName;
+	private String initMethodName; //初始化方法
+
+	@Nullable
+	private String destroyMethodName; //销毁方法
 
 	private boolean enforceInitMethod = true;
 
 	private boolean enforceDestroyMethod = true;
 
+
+	//synthetic 属性的作用是标识 Bean 是否是合成的，即是否由 Spring 容器自动生成的。它的设计目的是区分开发人员配置的 Bean 和容器生成的 Bean，以便更好地理解和管理应用程序中的 Bean。
 	private boolean synthetic = false;
 
 	private int role = BeanDefinition.ROLE_APPLICATION;
@@ -459,6 +485,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * @param classLoader the ClassLoader to use for resolving a (potential) class name
 	 * @return the resolved bean class
 	 * @throws ClassNotFoundException if the class name could be resolved
+	 * 加载指定的bean
 	 */
 	@Nullable
 	public Class<?> resolveBeanClass(@Nullable ClassLoader classLoader) throws ClassNotFoundException {

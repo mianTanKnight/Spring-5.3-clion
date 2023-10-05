@@ -124,13 +124,16 @@ public interface BeanFactory {
 	 * beans <i>created</i> by the FactoryBean. For example, if the bean named
 	 * {@code myJndiObject} is a FactoryBean, getting {@code &myJndiObject}
 	 * will return the factory, not the instance returned by the factory.
+	 * 使用 &xxx 获取具体工厂实例 而非工厂创建出来的对象
 	 */
 	String FACTORY_BEAN_PREFIX = "&";
 
 
 	/**
 	 * Return an instance, which may be shared or independent, of the specified bean.
+	 * 返回个指定实例 也许共享或独立的
 	 * <p>This method allows a Spring BeanFactory to be used as a replacement for the
+	 * 允许使用spring BeanFactory 替代单例/原型模式
 	 * Singleton or Prototype design pattern. Callers may retain references to
 	 * returned objects in the case of Singleton beans.
 	 * <p>Translates aliases back to the corresponding canonical bean name.
@@ -365,6 +368,7 @@ public interface BeanFactory {
 	 * uninitialized {@code FactoryBean} if no early type information is available.
 	 * <p>Translates aliases back to the corresponding canonical bean name.
 	 * <p>Will ask the parent factory if the bean cannot be found in this factory instance.
+	 * allowFactoryBeanInit: 是否允许为了确定其对象类型而初始化FactoryBean
 	 * @param name the name of the bean to query
 	 * @param allowFactoryBeanInit whether a {@code FactoryBean} may get initialized
 	 * just for the purpose of determining its object type

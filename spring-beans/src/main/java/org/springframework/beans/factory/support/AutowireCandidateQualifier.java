@@ -28,6 +28,8 @@ import org.springframework.util.Assert;
  * @author Juergen Hoeller
  * @since 2.5
  * @see org.springframework.beans.factory.annotation.Qualifier
+ * AutowireCandidateQualifier 的设计目的是允许开发人员使用合格器来实现自动装配的精细化匹配，特别是与自定义注解相关的自动装配。
+ * 这种机制使开发人员可以更好地控制自动装配的行为，以选择特定的 Bean。
  */
 @SuppressWarnings("serial")
 public class AutowireCandidateQualifier extends BeanMetadataAttributeAccessor {

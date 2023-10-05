@@ -60,6 +60,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	/**
 	 * Role hint indicating that a {@code BeanDefinition} is a major part
 	 * of the application. Typically corresponds to a user-defined bean.
+	 * 表示一个Bean是应用程序的主要组成部分，通常对应于用户自定义的Bean。
 	 */
 	int ROLE_APPLICATION = 0;
 
@@ -71,6 +72,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * of when looking more closely at a particular
 	 * {@link org.springframework.beans.factory.parsing.ComponentDefinition},
 	 * but not when looking at the overall configuration of an application.
+	 * 表示一个Bean是应用程序配置中的一个辅助部分，通常用于支持其他主要Bean。
+	 * 这种类型的Bean对于某个特定 ComponentDefinition（通常是外部配置的一部分）是重要的，但在查看整个应用程序的配置时可能不那么重要。
 	 */
 	int ROLE_SUPPORT = 1;
 
@@ -79,6 +82,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * entirely background role and has no relevance to the end-user. This hint is
 	 * used when registering beans that are completely part of the internal workings
 	 * of a {@link org.springframework.beans.factory.parsing.ComponentDefinition}.
+	 * 表示一个Bean提供了完全的后台服务，对于最终用户没有直接关联性。
+	 * 这种类型的Bean通常是Spring内部工作的一部分，用于支持Spring框架的运行，而不是应用程序的核心组件。
 	 */
 	int ROLE_INFRASTRUCTURE = 2;
 
@@ -152,7 +157,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * Set the names of the beans that this bean depends on being initialized.
 	 * The bean factory will guarantee that these beans get initialized first.
 	 */
-	void setDependsOn(@Nullable String... dependsOn);
+	void setDependsOn(@Nullable String... dependsOn); //此bean 所依赖的bean
 
 	/**
 	 * Return the bean names that this bean depends on.
@@ -166,6 +171,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * It does not affect explicit references by name, which will get resolved even
 	 * if the specified bean is not marked as an autowire candidate. As a consequence,
 	 * autowiring by name will nevertheless inject a bean if the name matches.
+	 * setAutowireCandidate 方法的作用是控制一个Bean是否可以作为其他Bean的自动装配候选项，
+	 * 主要影响类型自动装配。这个方法允许你更精细地控制Spring容器中Bean之间的依赖关系，以满足特定的装配需求。
 	 */
 	void setAutowireCandidate(boolean autowireCandidate);
 
@@ -219,12 +226,14 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * Return the constructor argument values for this bean.
 	 * <p>The returned instance can be modified during bean factory post-processing.
 	 * @return the ConstructorArgumentValues object (never {@code null})
+	 * 返回构造参数对象
 	 */
 	ConstructorArgumentValues getConstructorArgumentValues();
 
 	/**
 	 * Return if there are constructor argument values defined for this bean.
 	 * @since 5.0.2
+	 * 此bean 是否存在构造参数
 	 */
 	default boolean hasConstructorArgumentValues() {
 		return !getConstructorArgumentValues().isEmpty();
@@ -234,6 +243,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * Return the property values to be applied to a new instance of the bean.
 	 * <p>The returned instance can be modified during bean factory post-processing.
 	 * @return the MutablePropertyValues object (never {@code null})
+	 *
 	 */
 	MutablePropertyValues getPropertyValues();
 
@@ -248,6 +258,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	/**
 	 * Set the name of the initializer method.
 	 * @since 5.1
+	 * 设置初始化方法
 	 */
 	void setInitMethodName(@Nullable String initMethodName);
 
@@ -289,6 +300,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * @see #ROLE_APPLICATION
 	 * @see #ROLE_SUPPORT
 	 * @see #ROLE_INFRASTRUCTURE
+	 * bean的角色
 	 */
 	int getRole();
 
@@ -335,6 +347,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 
 	/**
 	 * Return whether this bean is "abstract", that is, not meant to be instantiated.
+	 * 是否抽象 即不被实例化
 	 */
 	boolean isAbstract();
 
@@ -350,6 +363,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * <p>Allows for retrieving the decorated bean definition, if any.
 	 * <p>Note that this method returns the immediate originator. Iterate through the
 	 * originator chain to find the original BeanDefinition as defined by the user.
+	 * 返回一个原始的beanDefinition 即没有被增强的源
 	 */
 	@Nullable
 	BeanDefinition getOriginatingBeanDefinition();

@@ -65,6 +65,7 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * @param beanName the name of the bean to look for
 	 * @return if this bean factory contains a bean definition with the given name
 	 * @see #containsBean
+	 * 是否存在于beanFactory 根据name
 	 */
 	boolean containsBeanDefinition(String beanName);
 
@@ -74,6 +75,7 @@ public interface ListableBeanFactory extends BeanFactory {
 	 * and ignores any singleton beans that have been registered by
 	 * other means than bean definitions.
 	 * @return the number of beans defined in the factory
+	 * 获得Factory bean 的数量
 	 */
 	int getBeanDefinitionCount();
 

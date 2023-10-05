@@ -43,6 +43,31 @@ import org.springframework.util.StringValueResolver;
  * needs. This extended interface is just meant to allow for framework-internal
  * plug'n'play and for special access to bean factory configuration methods.
  *
+ * ConfigurableBeanFactory 接口在 Spring 框架中提供了一个高级别的抽象，它包含了对 BeanFactory 的各种配置选项。
+ * 它定义了如何管理和操纵 beans，如何处理它们的依赖关系，如何进行类型转换，如何处理各种不同的 bean 作用域等等。
+ *
+ * 下面总结一下 ConfigurableBeanFactory 提供的主要功能：
+ *
+ * 两种类加载器：
+ * 它允许您指定一个自定义的类加载器来加载 bean 类。
+ * 它还提供了一个临时类加载器，用于特定的加载场景。
+ * 解析和转换：
+ * 提供了解析表达式和类型转换的功能。
+ * 允许您设置自定义的类型转换器 (ConversionService) 和自定义的属性编辑器 (PropertyEditorRegistrar)。
+ * 处理 bean 实例：
+ * 提供了管理 bean 生命周期的方法，包括初始化和销毁的回调方法。
+ * 允许您注册 BeanPostProcessor，这些处理器可以在 bean 初始化的不同阶段进行拦截和操作。
+ * 依赖管理：
+ * 允许您查询和管理 bean 之间的依赖关系。
+ * 提供了检查和处理循环依赖的机制。
+ * 作用域管理：
+ * 允许您注册自定义的作用域。
+ * 提供了处理不同作用域 bean 的机制（例如单例和原型作用域）。
+ * 其他配置和服务：
+ * 允许您设置其他相关服务，比如 AutowireCandidateResolver 和 BeanExpressionResolver 等。
+ * 提供了各种配置选项，如是否缓存 bean 元数据，是否允许循环引用等。
+ * 通过这些功能，ConfigurableBeanFactory 提供了一种灵活且强大的方式来管理 Spring 容器中的 beans 和它们之间的关系。
+ *
  * @author Juergen Hoeller
  * @since 03.11.2003
  * @see org.springframework.beans.factory.BeanFactory
@@ -99,6 +124,43 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 
 	/**
 	 * Specify a temporary ClassLoader to use for type matching purposes.
+	 * 指定临时加载器
+	 *
+	 * 临时类加载器和LTW(加载时编织)：
+	 * 对于加载时编织：
+	 *
+	 * 临时类加载器用于加载并处理（编织）类。它创建了一个独立的命名空间，确保在编织过程中不会影响到主应用类加载器。
+	 * 一旦编织完成，处理过的类可以被主应用类加载器或其他类加载器加载。这保证了编织过程不会干扰到应用的正常运行。
+	 * 因此，使用临时类加载器可以确保加载时编织的过程不会影响到应用的其它部分，从而提供了一种有效的隔离机制。
+	 *
+	 * 当我们谈论“编织”或字节码增强时，我们是指在运行时动态修改类的字节码。这是AOP（面向切面编程）和许多其他高级Java特性的基础。
+	 *
+	 * 问题：
+	 * 为什么不直接使用主类加载器来加载和编织类？
+	 *
+	 * 简单的解释：
+	 * 避免冲突：
+	 *
+	 * 如果主类加载器已经加载了一个类，再试图加载经过编织（修改）的同一个类会产生冲突。使用临时类加载器避免了这个问题。
+	 * 隔离：
+	 *
+	 * 使用不同的类加载器可以将编织的过程和应用的其他部分隔离开来，确保编织不会影响到应用的其他部分。
+	 * 示例：
+	 * 考虑这样一个场景：
+	 *
+	 * 你的应用使用了一个库，这个库包含了一个LibraryClass类。
+	 * 你想在运行时通过AOP为LibraryClass添加一些额外的逻辑。
+	 * 如果你使用主类加载器：
+	 *
+	 * 当你的应用启动时，主类加载器会加载LibraryClass。
+	 * 然后，当你尝试应用AOP时，你需要再次加载经过修改的LibraryClass。
+	 * 这时，主类加载器会拒绝加载经过修改的LibraryClass，因为它已经加载了原始的LibraryClass。
+	 * 但是，如果你使用一个临时类加载器：
+	 *
+	 * 你可以使用临时类加载器加载和修改LibraryClass。
+	 * 然后，将修改后的LibraryClass传递回主类加载器。
+	 * 这样，主类加载器就可以使用修改后的LibraryClass，而不会发生任何冲突。
+	 * 这就是为什么使用临时类加载器而不是主类加载器进行类的加载和编织的主要原因。
 	 * Default is none, simply using the standard bean ClassLoader.
 	 * <p>A temporary ClassLoader is usually just specified if
 	 * <i>load-time weaving</i> is involved, to make sure that actual bean
@@ -122,6 +184,7 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 	 * <p>Turn this flag off to enable hot-refreshing of bean definition objects
 	 * and in particular bean classes. If this flag is off, any creation of a bean
 	 * instance will re-query the bean class loader for newly resolved classes.
+	 * 是否开启bean的元数据(元数据 包括 全类名 ,构造参数,依赖等等...)
 	 */
 	void setCacheBeanMetadata(boolean cacheBeanMetadata);
 
@@ -137,6 +200,9 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 	 * An ApplicationContext will typically set a standard expression strategy
 	 * here, supporting "#{...}" expressions in a Unified EL compatible style.
 	 * @since 3.0
+	 * BeanExpressionResolver 是一个接口，它定义了如何在 Spring 的 Bean 定义中评估表达式。
+	 * 表达式是一种允许您在 Bean 定义中动态插入值的机制。这使得您的配置可以更加灵活和强大。
+	 * 例如:#{someExpression}
 	 */
 	void setBeanExpressionResolver(@Nullable BeanExpressionResolver resolver);
 
@@ -151,6 +217,14 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 	 * Specify a Spring 3.0 ConversionService to use for converting
 	 * property values, as an alternative to JavaBeans PropertyEditors.
 	 * @since 3.0
+	 * ConversionService 是 Spring 框架的一部分，它提供了一个统一的API来执行从一种类型到另一种类型的转换。这是一个更现代、更灵活的替代方案，相对于旧的 JavaBeans PropertyEditor 接口。
+	 *
+	 * 在 Spring 配置中，ConversionService 可以用来控制 bean 属性的类型转换。例如，您可能有一个 bean，它有一个接受整数类型的属性，但在配置文件中，该值是以字符串的形式指定的。
+	 * ConversionService 可以自动将该字符串值转换为整数，从而消除了在代码中进行显式类型转换的需要。
+	 * <bean id="person" class="com.example.Person">
+	 *     <property name="age" value="25"/>
+	 * </bean>
+	 * 虽然value是一个字符串（"25"），但如果您的ApplicationContext有一个ConversionService，它将自动将该值转换为一个int。
 	 */
 	void setConversionService(@Nullable ConversionService conversionService);
 
@@ -242,6 +316,13 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 	 * that autodetected post-processors (e.g. as beans in an ApplicationContext)
 	 * will always be applied after programmatically registered ones.
 	 * @param beanPostProcessor the post-processor to register
+	 * BeanPostProcessor 是作用于 Spring 容器中所有的 bean 上的。它包含两个回调方法：
+	 *
+	 * postProcessBeforeInitialization(Object bean, String beanName): 这个方法在任何 bean 的初始化方法（例如，使用 @PostConstruct 注解的方法）调用之前被调用。
+	 * postProcessAfterInitialization(Object bean, String beanName): 这个方法在任何 bean 的初始化方法调用之后被调用。
+	 * 通过实现 BeanPostProcessor 接口，并将实现类作为 bean 注册到 Spring 容器中，你可以拦截容器管理的所有 bean 的创建过程，并在初始化之前或之后执行自定义逻辑。例如，你可以修改 bean 的属性，或者返回一个代理对象，从而实现 AOP（面向切面编程）。
+	 *
+	 * 这是一个非常强大的特性，它允许你干预并影响 bean 的生命周期和实例化过程。
 	 */
 	void addBeanPostProcessor(BeanPostProcessor beanPostProcessor);
 
@@ -338,6 +419,11 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 	 * @return a (potentially merged) BeanDefinition for the given bean
 	 * @throws NoSuchBeanDefinitionException if there is no bean definition with the given name
 	 * @since 2.5
+	 * 当你使用 getMergedBeanDefinition 方法时，如果 bean 有一个父 bean 定义（可以在不同的上下文或父容器中），
+	 * 这个方法就会返回一个新的 BeanDefinition 对象，这个对象合并了子 bean 定义和父 bean 定义的属性。这在处理 bean 定义继承时非常有用。
+	 *
+	 * 例如，如果一个 bean B 继承了 bean A 的定义，并且他们两个都定义了不同的属性或设置，那么通过 getMergedBeanDefinition
+	 * 方法获取的 BeanDefinition 对象将包含 bean A 和 B 的所有属性和设置。
 	 */
 	BeanDefinition getMergedBeanDefinition(String beanName) throws NoSuchBeanDefinitionException;
 
@@ -364,6 +450,8 @@ public interface ConfigurableBeanFactory extends HierarchicalBeanFactory, Single
 	 * Determine whether the specified bean is currently in creation.
 	 * @param beanName the name of the bean
 	 * @return whether the bean is currently in creation
+	 * 这个方法允许容器内部代码显式设置一个 bean 是否正在创建中。这在解决循环依赖的问题上有用。当 Spring 容器检测到一个循环依赖时，
+	 * 它可以通过这个方法显式标记 bean 是在创建中的状态，然后执行特定的处理逻辑以解决循环依赖的问题。
 	 * @since 2.5
 	 */
 	boolean isCurrentlyInCreation(String beanName);

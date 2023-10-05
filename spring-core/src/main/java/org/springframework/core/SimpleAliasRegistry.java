@@ -46,7 +46,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	/** Logger available to subclasses. */
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	/** Map from alias to canonical name. */
+	/** Map from alias to canonical name.   alias : name , name ：alias */
 	private final Map<String, String> aliasMap = new ConcurrentHashMap<>(16);
 
 
@@ -55,6 +55,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 		Assert.hasText(name, "'name' must not be empty");
 		Assert.hasText(alias, "'alias' must not be empty");
 		synchronized (this.aliasMap) {
+			//如果存在 就删掉一个映射
 			if (alias.equals(name)) {
 				this.aliasMap.remove(alias);
 				if (logger.isDebugEnabled()) {
@@ -64,6 +65,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 			else {
 				String registeredName = this.aliasMap.get(alias);
 				if (registeredName != null) {
+					//已存在
 					if (registeredName.equals(name)) {
 						// An existing alias - no need to re-register
 						return;
@@ -99,6 +101,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * @param name the name to check
 	 * @param alias the alias to look for
 	 * @since 4.2.1
+	 * 递归判断 name是否为已存在的别名
 	 */
 	public boolean hasAlias(String name, String alias) {
 		String registeredName = this.aliasMap.get(alias);
@@ -134,6 +137,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * Transitively retrieve all aliases for the given name.
 	 * @param name the target name to find aliases for
 	 * @param result the resulting aliases list
+	 * 取出指定name的别名(key) 再递归检查此key(别名)的别名
 	 */
 	private void retrieveAliases(String name, List<String> result) {
 		this.aliasMap.forEach((alias, registeredName) -> {
@@ -151,18 +155,18 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * in target bean names and even in alias names.
 	 * @param valueResolver the StringValueResolver to apply
 	 */
-	public void resolveAliases(StringValueResolver valueResolver) {
+	public void resolveAliases(StringValueResolver valueResolver) { //valueResolver 字符串表达式解析式
 		Assert.notNull(valueResolver, "StringValueResolver must not be null");
 		synchronized (this.aliasMap) {
 			Map<String, String> aliasCopy = new HashMap<>(this.aliasMap);
 			aliasCopy.forEach((alias, registeredName) -> {
-				String resolvedAlias = valueResolver.resolveStringValue(alias);
-				String resolvedName = valueResolver.resolveStringValue(registeredName);
-				if (resolvedAlias == null || resolvedName == null || resolvedAlias.equals(resolvedName)) {
+				String resolvedAlias = valueResolver.resolveStringValue(alias);  //解析出alias
+				String resolvedName = valueResolver.resolveStringValue(registeredName); //解析出name
+				if (resolvedAlias == null || resolvedName == null || resolvedAlias.equals(resolvedName)) { //检查是否存在
 					this.aliasMap.remove(alias);
 				}
-				else if (!resolvedAlias.equals(alias)) {
-					String existingName = this.aliasMap.get(resolvedAlias);
+				else if (!resolvedAlias.equals(alias)) { //如果解析出的不等于 alias
+					String existingName = this.aliasMap.get(resolvedAlias); //这里是从aliasMap中取(可能已经插入新的了？)
 					if (existingName != null) {
 						if (existingName.equals(resolvedName)) {
 							// Pointing to existing alias - just remove placeholder
@@ -176,9 +180,9 @@ public class SimpleAliasRegistry implements AliasRegistry {
 					}
 					checkForAliasCircle(resolvedName, resolvedAlias);
 					this.aliasMap.remove(alias);
-					this.aliasMap.put(resolvedAlias, resolvedName);
+					this.aliasMap.put(resolvedAlias, resolvedName); //
 				}
-				else if (!registeredName.equals(resolvedName)) {
+				else if (!registeredName.equals(resolvedName)) { //更新value
 					this.aliasMap.put(alias, resolvedName);
 				}
 			});
@@ -193,6 +197,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * @param alias the candidate alias
 	 * @see #registerAlias
 	 * @see #hasAlias
+	 * 检查此name是否是已存在的别名
 	 */
 	protected void checkForAliasCircle(String name, String alias) {
 		if (hasAlias(alias, name)) {
@@ -206,6 +211,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * Determine the raw name, resolving aliases to canonical names.
 	 * @param name the user-specified name
 	 * @return the transformed name
+	 * 得到规范的名称
 	 */
 	public String canonicalName(String name) {
 		String canonicalName = name;
