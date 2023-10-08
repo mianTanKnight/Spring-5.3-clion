@@ -212,6 +212,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * @param name the user-specified name
 	 * @return the transformed name
 	 * 得到规范的名称
+	 * A -> B , B -> C  会得到C
 	 */
 	public String canonicalName(String name) {
 		String canonicalName = name;

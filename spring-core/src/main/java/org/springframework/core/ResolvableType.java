@@ -79,6 +79,9 @@ import org.springframework.util.StringUtils;
  * @see #forType(Type)
  * @see #forInstance(Object)
  * @see ResolvableTypeProvider
+ *
+ * ResolvableType 是对 Class，Field，Method 获取 Type 的抽象。
+ * 是spring对java对象获取泛型的实现
  */
 @SuppressWarnings("serial")
 public class ResolvableType implements Serializable {

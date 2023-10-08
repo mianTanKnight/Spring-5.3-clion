@@ -68,24 +68,28 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	/**
 	 * Constant that indicates no external autowiring at all.
 	 * @see #setAutowireMode
+	 * 外部注入
 	 */
 	public static final int AUTOWIRE_NO = AutowireCapableBeanFactory.AUTOWIRE_NO;
 
 	/**
 	 * Constant that indicates autowiring bean properties by name.
 	 * @see #setAutowireMode
+	 * 按名称自动注入
 	 */
 	public static final int AUTOWIRE_BY_NAME = AutowireCapableBeanFactory.AUTOWIRE_BY_NAME;
 
 	/**
 	 * Constant that indicates autowiring bean properties by type.
 	 * @see #setAutowireMode
+	 * 按类型自动注入
 	 */
 	public static final int AUTOWIRE_BY_TYPE = AutowireCapableBeanFactory.AUTOWIRE_BY_TYPE;
 
 	/**
 	 * Constant that indicates autowiring a constructor.
 	 * @see #setAutowireMode
+	 * 按构造方法自动注入
 	 */
 	public static final int AUTOWIRE_CONSTRUCTOR = AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR;
 
@@ -194,10 +198,10 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	private boolean lenientConstructorResolution = true;
 
 	@Nullable
-	private String factoryBeanName;
+	private String factoryBeanName; //beanfatory的名称
 
 	@Nullable
-	private String factoryMethodName;
+	private String factoryMethodName; //beanFatory 生产bean 方法的名称
 
 	@Nullable
 	private ConstructorArgumentValues constructorArgumentValues; //bean的构造参数
@@ -221,13 +225,13 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	//synthetic 属性的作用是标识 Bean 是否是合成的，即是否由 Spring 容器自动生成的。它的设计目的是区分开发人员配置的 Bean 和容器生成的 Bean，以便更好地理解和管理应用程序中的 Bean。
 	private boolean synthetic = false;
 
-	private int role = BeanDefinition.ROLE_APPLICATION;
+	private int role = BeanDefinition.ROLE_APPLICATION; //默认为应用bean
 
 	@Nullable
-	private String description;
+	private String description;  //说明
 
 	@Nullable
-	private Resource resource;
+	private Resource resource; // 源
 
 
 	/**
@@ -419,7 +423,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	@Nullable
 	public String getBeanClassName() {
 		Object beanClassObject = this.beanClass;
-		if (beanClassObject instanceof Class) {
+		if (beanClassObject instanceof Class) {  //如果是class
 			return ((Class<?>) beanClassObject).getName();
 		}
 		else {
@@ -437,6 +441,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	/**
 	 * Return the specified class of the bean definition (assuming it is resolved already).
+	 * 返回指定class的bean的定义 假设其已经加载完成
 	 * <p><b>NOTE:</b> This is an initial class reference as declared in the bean metadata
 	 * definition, potentially combined with a declared factory method or a
 	 * {@link org.springframework.beans.factory.FactoryBean} which may lead to a different
@@ -480,8 +485,9 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	/**
 	 * Determine the class of the wrapped bean, resolving it from a
-	 * specified class name if necessary. Will also reload a specified
-	 * Class from its name when called with the bean class already resolved.
+	 * specified class name if necessary.
+	 * Will also reload a specified Class from its name when called with the bean class already resolved.
+	 * 会另外重新加载指定的类 根据其名称 当此bean 已经被加载过
 	 * @param classLoader the ClassLoader to use for resolving a (potential) class name
 	 * @return the resolved bean class
 	 * @throws ClassNotFoundException if the class name could be resolved
@@ -493,7 +499,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		if (className == null) {
 			return null;
 		}
-		Class<?> resolvedClass = ClassUtils.forName(className, classLoader);
+		Class<?> resolvedClass = ClassUtils.forName(className, classLoader); //classLoader加载
 		this.beanClass = resolvedClass;
 		return resolvedClass;
 	}
@@ -553,8 +559,9 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * Set if this bean is "abstract", i.e. not meant to be instantiated itself but
-	 * rather just serving as parent for concrete child bean definitions.
+	 * Set if this bean is "abstract", i.e.
+	 * not meant to be instantiated itself but rather just serving as parent for concrete child bean definitions.
+	 * 不是为了实例自身 而是为其子类提供bean的定义 比如传递的方法与变量
 	 * <p>Default is "false". Specify true to tell the bean factory to not try to
 	 * instantiate that particular bean in any case.
 	 */
@@ -775,7 +782,9 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	/**
 	 * Specify a callback for creating an instance of the bean,
+	 * 指定一个创建bean的回调
 	 * as an alternative to a declaratively specified factory method.
+	 * beanFactory
 	 * <p>If such a callback is set, it will override any other constructor
 	 * or factory method metadata. However, bean property population and
 	 * potential annotation-driven injection will still apply as usual.
@@ -1043,6 +1052,18 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	/**
 	 * Return whether this bean definition is 'synthetic', that is,
 	 * not defined by the application itself.
+	 * 在Spring框架中，一个BeanDefinition被标记为synthetic（合成的）意味着这个Bean定义并不是由应用程序直接定义的。
+	 * 换句话说，它不是由用户在XML配置文件中明确声明的，也不是通过Java配置类明确声明的。
+	 * 那么，合成的Bean定义是怎么来的呢？
+	 * 合成的BeanDefinition通常是由Spring框架的内部逻辑或某些特定的Spring扩展（例如AspectJ集成）动态生成的。
+	 * 这些Bean定义的存在是为了支持某些内部功能或与某些特定功能的集成，而应用程序开发者可能并不直接知晓。
+	 * 标记BeanDefinition为synthetic有几个用途：
+	 * 区分来源：开发者可以容易地区分哪些Bean是由他们明确定义的，哪些是由框架动态生成的。
+	 * 优化：某些Spring内部过程可能会针对合成的Bean执行特定的逻辑或优化。
+	 * 安全性：例如，当进行某些类型的Bean查找或自动装配操作时，可以选择忽略合成的Bean，从而避免可能的副作用。
+	 * 一个常见的示例是当使用AspectJ与Spring集成时。当一个类被一个切面所建议时，Spring可能会为该类生成一个代理Bean，并为此代理Bean创建一个合成的BeanDefinition。
+	 * 这样，原始Bean和代理Bean可以分别存在，而开发者可能只知道原始Bean的定义。
+	 * 总之，synthetic属性允许Spring框架及其扩展动态地创建Bean定义，同时为这些Bean提供一个标记，表明它们并不直接由应用程序定义
 	 */
 	public boolean isSynthetic() {
 		return this.synthetic;

@@ -52,39 +52,61 @@ import org.springframework.util.Assert;
  * @author Sam Brannen
  * @see GenericBeanDefinition
  * @see ChildBeanDefinition
+ * bean的生命周期
+ * RootBean 通常是指没有父类的bean
  */
 @SuppressWarnings("serial")
 public class RootBeanDefinition extends AbstractBeanDefinition {
 
 	@Nullable
-	private BeanDefinitionHolder decoratedDefinition;
+	private BeanDefinitionHolder decoratedDefinition; //beanDefinition包装类
 
 	@Nullable
-	private AnnotatedElement qualifiedElement;
+	private AnnotatedElement qualifiedElement; //获得其注解信息
 
-	/** Determines if the definition needs to be re-merged. */
+	/**
+	 * Determines if the definition needs to be re-merged.
+	 * 在 RootBeanDefinition 中的 stale 字段表示这个 BeanDefinition 是否已经过时或不再是最新的。
+	 * 一般情况下，当一个 BeanDefinition 在某个地方被修改时，
+	 * 可能会将这个 stale 设置为 true，表明该定义可能已经不再是最新的或已经被其他定义覆盖。
+	 *
+	 * */
 	volatile boolean stale;
 
+	//是否允许cache
 	boolean allowCaching = true;
 
+	//表示beanFactory的Method的唯一性
 	boolean isFactoryMethodUnique;
 
 	@Nullable
 	volatile ResolvableType targetType;
 
-	/** Package-visible field for caching the determined Class of a given bean definition. */
+	/**
+	 *  Package-visible field for caching the determined Class of a given bean definition.
+	 *  根据bean定义确定的class缓存,包可见字段
+	 * */
 	@Nullable
 	volatile Class<?> resolvedTargetType;
 
-	/** Package-visible field for caching if the bean is a factory bean. */
+	/**
+	 * Package-visible field for caching if the bean is a factory bean.
+	 * 是否是factoryBean
+	 * */
 	@Nullable
 	volatile Boolean isFactoryBean;
 
-	/** Package-visible field for caching the return type of a generically typed factory method. */
+	/**
+	 * Package-visible field for caching the return type of a generically typed factory method.
+	 *
+	 * */
 	@Nullable
 	volatile ResolvableType factoryMethodReturnType;
 
-	/** Package-visible field for caching a unique factory method candidate for introspection. */
+	/**
+	 * Package-visible field for caching a unique factory method candidate for introspection.
+	 *
+	 * */
 	@Nullable
 	volatile Method factoryMethodToIntrospect;
 
@@ -95,28 +117,52 @@ public class RootBeanDefinition extends AbstractBeanDefinition {
 	/** Common lock for the four constructor fields below. */
 	final Object constructorArgumentLock = new Object();
 
-	/** Package-visible field for caching the resolved constructor or factory method. */
+	/**
+	 *  Package-visible field for caching the resolved constructor or factory method.
+	 * Excutable是java.lang.reflect下的抽象类，也是Method和Constructor类的超类，可以看下jdk文档的注释
+	 * 获得类信息
+	 *
+	 * */
 	@Nullable
 	Executable resolvedConstructorOrFactoryMethod;
 
-	/** Package-visible field that marks the constructor arguments as resolved. */
+	/**
+	 *  Package-visible field that marks the constructor arguments as resolved.
+	 *  这个字段用于在 Spring 框架内部追踪构造函数参数的解析状态。
+	 *  在 Spring 容器初始化和处理 Bean 时，需要确保构造函数参数的解析是正确完成的。这个字段帮助 Spring 跟踪是否已经完成了构造函数参数的解析
+	 * */
 	boolean constructorArgumentsResolved = false;
 
-	/** Package-visible field for caching fully resolved constructor arguments. */
+	/**
+	 * Package-visible field for caching fully resolved constructor arguments.
+	 * 解析出来的构造参数
+	 * */
 	@Nullable
 	Object[] resolvedConstructorArguments;
 
-	/** Package-visible field for caching partly prepared constructor arguments. */
+	/**
+	 * Package-visible field for caching partly prepared constructor arguments.
+	 * 部分已经准备好的参数
+	 * */
 	@Nullable
 	Object[] preparedConstructorArguments;
 
-	/** Common lock for the two post-processing fields below. */
+	/**
+	 * Common lock for the two post-processing fields below.
+	 * 后置处理锁
+	 *  */
 	final Object postProcessingLock = new Object();
 
 	/** Package-visible field that indicates MergedBeanDefinitionPostProcessor having been applied. */
 	boolean postProcessed = false;
 
-	/** Package-visible field that indicates a before-instantiation post-processor having kicked in. */
+	/**
+	 * Package-visible field that indicates a before-instantiation post-processor having kicked in.
+	 * 这个字段用于指示在 Bean 实例化之前是否已经执行了一个"before-instantiation"的后处理器（post-processor）。
+	 * 如果该字段为 null，则表示尚未执行任何"before-instantiation"后处理器。
+	 * 如果该字段被设置为 true，则表示已经执行了至少一个"before-instantiation"后处理器。
+	 * 如果该字段被设置为 false，则表示已经执行了一个"before-instantiation"后处理器，但它返回了 null（即没有修改 Bean 的实例化过程）。
+	 *  */
 	@Nullable
 	volatile Boolean beforeInstantiationResolved;
 
