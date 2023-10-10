@@ -350,8 +350,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 
 				// Create bean instance.
-				if (mbd.isSingleton()) {
-					sharedInstance = getSingleton(beanName, () -> {
+				if (mbd.isSingleton()) { //如果bean的定义是单例
+					sharedInstance = getSingleton(beanName, () -> { //注册create 回调
 						try {
 							return createBean(beanName, mbd, args);
 						}
@@ -363,14 +363,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							throw ex;
 						}
 					});
-					beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+					/**
+					 * getObjectForBeanInstance 合并实体 并且打上正在创建的标识
+					 */
+					beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, mbd); //合并实体
 				}
 
-				else if (mbd.isPrototype()) {
+				else if (mbd.isPrototype()) { //如果是原型模式
 					// It's a prototype -> create a new instance.
 					Object prototypeInstance = null;
 					try {
-						beforePrototypeCreation(beanName);
+						beforePrototypeCreation(beanName); // 注册待创建的原型bean
 						prototypeInstance = createBean(beanName, mbd, args);
 					}
 					finally {
@@ -1203,18 +1206,21 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * <p>The default implementation register the prototype as currently in creation.
 	 * @param beanName the name of the prototype about to be created
 	 * @see #isPrototypeCurrentlyInCreation
+	 * 注册正在创建的prototype模式Bean到ThreadLocal
+	 * 核心思维是类似于不可变模式中copy 每个线程来都copy个新的 不用关注别的线程 因为它们不会改变原型beandefinition
+	 * 目的在创建检查时是否存在循环依赖
 	 */
 	@SuppressWarnings("unchecked")
 	protected void beforePrototypeCreation(String beanName) {
-		Object curVal = this.prototypesCurrentlyInCreation.get();
-		if (curVal == null) {
+		Object curVal = this.prototypesCurrentlyInCreation.get(); //检查当前线程是否正在创建原型Bean？
+		if (curVal == null) { //如果没有 那么设置占用状态
 			this.prototypesCurrentlyInCreation.set(beanName);
 		}
 		else if (curVal instanceof String) {
 			Set<String> beanNameSet = new HashSet<>(2);
 			beanNameSet.add((String) curVal);
 			beanNameSet.add(beanName);
-			this.prototypesCurrentlyInCreation.set(beanNameSet);
+			this.prototypesCurrentlyInCreation.set(beanNameSet);  //更新为SET??
 		}
 		else {
 			Set<String> beanNameSet = (Set<String>) curVal;
@@ -1407,7 +1413,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * 如果当前Bean是一个顶层Bean并不包含在任何其他Bean内部，那么containingBd就是null。
 	 * 如果当前Bean是一个内部Bean，那么containingBd就会是这个内部Bean的外部容器Bean的定义。
 	 */
-	protected RootBeanDefinition getMergedBeanDefinition(String beanName, BeanDefinition bd, @Nullable BeanDefinition containingBd)
+	protected RootBeanDefinition  getMergedBeanDefinition(String beanName, BeanDefinition bd, @Nullable BeanDefinition containingBd)
 			throws BeanDefinitionStoreException {
 
 		synchronized (this.mergedBeanDefinitions) { //上容器锁
@@ -1570,15 +1576,15 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			throws CannotLoadBeanClassException {
 
 		try {
-			if (mbd.hasBeanClass()) {
-				return mbd.getBeanClass();
+			if (mbd.hasBeanClass()) { //如果已经解析完 也就是beandefinition中已经存在bean了
+				return mbd.getBeanClass(); // 直接返回
 			}
 			if (System.getSecurityManager() != null) {
 				return AccessController.doPrivileged((PrivilegedExceptionAction<Class<?>>)
 						() -> doResolveBeanClass(mbd, typesToMatch), getAccessControlContext());
 			}
 			else {
-				return doResolveBeanClass(mbd, typesToMatch);
+				return doResolveBeanClass(mbd, typesToMatch); //解析生产bean
 			}
 		}
 		catch (PrivilegedActionException pae) {
@@ -1601,17 +1607,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		ClassLoader dynamicLoader = beanClassLoader;
 		boolean freshResolve = false;
 
-		if (!ObjectUtils.isEmpty(typesToMatch)) {
+		if (!ObjectUtils.isEmpty(typesToMatch)) {  //如果有需要排除的类
 			// When just doing type checks (i.e. not creating an actual instance yet),
 			// use the specified temporary class loader (e.g. in a weaving scenario).
-			ClassLoader tempClassLoader = getTempClassLoader();
-			if (tempClassLoader != null) {
+			ClassLoader tempClassLoader = getTempClassLoader(); //获取临时加载器
+			if (tempClassLoader != null) {  //如果存在临时加载器
 				dynamicLoader = tempClassLoader;
 				freshResolve = true;
 				if (tempClassLoader instanceof DecoratingClassLoader) {
 					DecoratingClassLoader dcl = (DecoratingClassLoader) tempClassLoader;
 					for (Class<?> typeToMatch : typesToMatch) {
-						dcl.excludeClass(typeToMatch.getName());
+						dcl.excludeClass(typeToMatch.getName()); //添加需要排除的加载类
 					}
 				}
 			}
@@ -1619,7 +1625,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 		String className = mbd.getBeanClassName();
 		if (className != null) {
-			Object evaluated = evaluateBeanDefinitionString(className, mbd);
+			Object evaluated = evaluateBeanDefinitionString(className, mbd); //解析calssName
 			if (!className.equals(evaluated)) {
 				// A dynamically resolved expression, supported as of 4.2...
 				if (evaluated instanceof Class) {
@@ -1638,7 +1644,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				// to avoid storing the resolved Class in the bean definition.
 				if (dynamicLoader != null) {
 					try {
-						return dynamicLoader.loadClass(className);
+						return dynamicLoader.loadClass(className); //使用动态加载器加载 但是如果typeMatch 不为NULL 则使用临时加载器加载
 					}
 					catch (ClassNotFoundException ex) {
 						if (logger.isTraceEnabled()) {
@@ -1646,7 +1652,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 						}
 					}
 				}
-				return ClassUtils.forName(className, dynamicLoader);
+				return ClassUtils.forName(className, dynamicLoader); //不然就使用线程上下文加载器
 			}
 		}
 

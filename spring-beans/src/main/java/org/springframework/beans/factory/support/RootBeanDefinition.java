@@ -157,11 +157,27 @@ public class RootBeanDefinition extends AbstractBeanDefinition {
 	boolean postProcessed = false;
 
 	/**
-	 * Package-visible field that indicates a before-instantiation post-processor having kicked in.
-	 * 这个字段用于指示在 Bean 实例化之前是否已经执行了一个"before-instantiation"的后处理器（post-processor）。
-	 * 如果该字段为 null，则表示尚未执行任何"before-instantiation"后处理器。
-	 * 如果该字段被设置为 true，则表示已经执行了至少一个"before-instantiation"后处理器。
-	 * 如果该字段被设置为 false，则表示已经执行了一个"before-instantiation"后处理器，但它返回了 null（即没有修改 Bean 的实例化过程）。
+     * 当beforeInstantiationResolved设置为true，这表示已经调用过postProcessBeforeInstantiation方法并确定了用于实例化的策略。
+	 * 当其设置为false或null，表示还未解析是否需要跳过默认的实例化过程。
+	 * 实际上，这个字段起到了一个“标记”的作用，以避免重复调用postProcessBeforeInstantiation方法和确定如何实例化bean
+	 *
+	 *
+	 * 确实，postProcessBeforeInstantiation 提供了一个强大的机制，允许开发者在Spring的标准实例化过程之前介入。
+	 * 在深入了解这个机制之前，先了解一下Spring Bean的标准实例化流程：
+	 * 解析Bean定义：首先，Spring需要解析bean的定义，了解如何创建这个bean，包括所需的构造函数参数、工厂方法等。
+	 * 解析依赖：如果bean依赖其他bean，Spring会解析这些依赖并确保它们首先被初始化。
+	 * 实例化：此时，Spring会通过反射使用bean的构造函数或工厂方法进行实例化。
+	 * InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 方法是在第3步之前介入的。
+	 * 如果该方法返回一个非 null 对象，Spring会使用这个对象作为bean的实例，而不再走标准的反射实例化流程。
+	 * 这有什么用呢？
+	 * 代理创建：最常见的用例是为了创建代理对象。例如，当使用Spring AOP进行代理时，我们可以在实例化之前就返回一个代理对象。
+	 * 条件实例化：基于某些条件，可以决定使用哪个对象作为bean实例。
+	 * 外部服务注入：例如，你可以决定从一个外部服务中获取一个对象并返回，而不是在本地创建。
+	 * 为了实现这种介入，postProcessBeforeInstantiation 可以：
+	 *
+	 * 返回一个新的对象（如上面所述的代理对象或从外部服务获取的对象）。
+	 * 返回 null 以继续标准的实例化流程。
+	 * 现在，回到你提到的 beforeInstantiationResolved。这个字段主要是为了确保 postProcessBeforeInstantiation 只被调用一次，防止重复调用和重复决策，以保持整个实例化过程的效率和一致性。
 	 *  */
 	@Nullable
 	volatile Boolean beforeInstantiationResolved;

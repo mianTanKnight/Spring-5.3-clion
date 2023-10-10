@@ -499,7 +499,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		if (className == null) {
 			return null;
 		}
-		Class<?> resolvedClass = ClassUtils.forName(className, classLoader); //classLoader加载
+		Class<?> resolvedClass = ClassUtils.forName(className, classLoader); //线程上下文classload加载
 		this.beanClass = resolvedClass;
 		return resolvedClass;
 	}
@@ -1175,6 +1175,16 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * Validate and prepare the method overrides defined for this bean.
 	 * Checks for existence of a method with the specified name.
 	 * @throws BeanDefinitionValidationException in case of validation failure
+	 *
+	 * 这两个prepareMethodOverrides和prepareMethodOverride方法确实没有真正地进行方法的覆盖调用。相反，它们只是验证和准备相关的方法覆盖定义，以确保它们在运行时可以正确地工作。
+	 *
+	 * 这两个方法的真正目的是：
+	 *
+	 * 验证给定的方法覆盖是否有效。例如，如果一个MethodOverride指定了一个名为someMethod的方法，但该bean类并没有这样的方法，那么应该抛出一个异常。
+	 * 如果bean类确实有指定的方法，并且只有一个此名称的方法（没有重载），那么设置MethodOverride的overloaded状态为false。这样，当执行真正的方法覆盖调用时，可以避免进行参数类型检查的开销。
+	 * 在实际的方法覆盖调用过程中，Spring会使用这些验证和准备的数据来正确地执行替换方法的调用。
+	 *
+	 * 这两个方法是在bean定义的解析和注册过程中调用的，确保任何明确定义的方法覆盖都是合法和准确的，以便在运行时正确地执行它们。
 	 */
 	public void prepareMethodOverrides() throws BeanDefinitionValidationException {
 		// Check that lookup methods exist and determine their overloaded status.

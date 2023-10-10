@@ -511,13 +511,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Make sure bean class is actually resolved at this point, and
 		// clone the bean definition in case of a dynamically resolved Class
 		// which cannot be stored in the shared merged bean definition.
-		Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
-		if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+		Class<?> resolvedClass = resolveBeanClass(mbd, beanName); //通过反射实例Class
+		if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) { //如果已经实例成功 并且beanDefinition 装配成功
 			mbdToUse = new RootBeanDefinition(mbd);
 			mbdToUse.setBeanClass(resolvedClass);
 		}
 
-		// Prepare method overrides.
+		// Prepare method overrides.  //校验方法复写 并且设置状态
 		try {
 			mbdToUse.prepareMethodOverrides();
 		}
@@ -528,8 +528,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		try {
 			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+			// BeanPostProcessors 是spring ioc 关于bean的核心概念 在bean创建过程的前后织入逻辑 影响bean的创建
+			//
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
-			if (bean != null) {
+			if (bean != null) { // 如果bean 非NULL 放弃Spring的默认的初始化工作 但还是被Spring管理
 				return bean;
 			}
 		}
@@ -539,6 +541,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
+			//Spring的默认初始化Bean流程
 			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
 			if (logger.isTraceEnabled()) {
 				logger.trace("Finished creating instance of bean '" + beanName + "'");
@@ -576,13 +579,29 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Instantiate the bean.
 		BeanWrapper instanceWrapper = null;
 		if (mbd.isSingleton()) {
-			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
+			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName); //清除IOC缓存
 		}
-		if (instanceWrapper == null) {
-			instanceWrapper = createBeanInstance(beanName, mbd, args);
+		if (instanceWrapper == null) { //如果是NULL 就证明之前并没有创建
+			instanceWrapper = createBeanInstance(beanName, mbd, args); //创建Bean实例
 		}
-		Object bean = instanceWrapper.getWrappedInstance();
-		Class<?> beanType = instanceWrapper.getWrappedClass();
+		Object bean = instanceWrapper.getWrappedInstance(); //取出包装类中的真实Bean
+		/**
+		 * 有实例bean确实意味着你可以对这个bean进行操作，但是仍有一些场景和原因需要Class对象：
+		 * 类型检查和类型转换：
+		 * 当你注入一个bean的属性或构造方法参数时，需要确保值的类型与目标属性或参数的类型匹配。使用Class对象可以帮助进行这种检查。
+		 * 代理创建：
+		 * 在创建AOP代理时，可能需要知道目标bean的接口或类，以决定创建基于接口的JDK代理还是基于类的CGLIB代理。
+		 * 元数据访问：
+		 * 反射API不仅允许对实例进行操作，还允许你访问有关类的结构的元数据。这包括注解、方法、字段、构造函数等。例如，Spring可以检查类上的特定注解来决定如何处理那个bean。
+		 * 延迟创建实例：
+		 * 在某些情况下，知道Class对象但不立即创建其实例是有益的。例如，使用原型作用域的bean：每次请求都需要一个新的实例，所以Class对象被用来多次实例化。
+		 * 泛型信息访问：
+		 * 在处理泛型时，Class对象提供了方法来获取与泛型相关的信息，这在处理如集合类型的bean属性时可能很有用。
+		 * 方法和构造函数的查找和调用：
+		 * 使用反射API的Class对象可以查找特定的方法和构造函数，然后调用它们。这在Spring的依赖注入过程中很常见，特别是当使用构造函数注入时。
+		 * 所以，即使你已经有了bean的实例，Class对象仍然在Spring的内部操作中非常有用。
+		 */
+		Class<?> beanType = instanceWrapper.getWrappedClass(); // 反射时的class
 		if (beanType != NullBean.class) {
 			mbd.resolvedTargetType = beanType;
 		}
@@ -591,7 +610,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
-					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
+					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName); //合并beanDefinition 利于继承关系的属性 与方法
 				}
 				catch (Throwable ex) {
 					throw new BeanCreationException(mbd.getResourceDescription(), beanName,
@@ -601,15 +620,42 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}
 		}
 
-		// Eagerly cache singletons to be able to resolve circular references
-		// even when triggered by lifecycle interfaces like BeanFactoryAware.
-		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
-				isSingletonCurrentlyInCreation(beanName));
+		// Eagerly cache singletons to be able to resolve circular references 主动缓存单例，以便能够解析循环引用
+		// even when triggered by lifecycle interfaces like BeanFactoryAware. 即使是由BeanFactoryAware等生命周期接口触发的
+		/**
+		 * 这个条件判断主要是看当前bean是否满足以下三个条件：
+		 *
+		 * mbd.isSingleton(): 当前bean是一个单例bean。
+		 * this.allowCircularReferences: 容器允许循环引用。
+		 * isSingletonCurrentlyInCreation(beanName): 当前bean正在创建中。
+		 * 如果这三个条件都满足，那么earlySingletonExposure就为true，表示可能存在一个循环引用，
+		 * 并且需要早期暴露这个bean的代理对象（或原始对象）来解决这个循环引用问题
+		 *
+		 * 这里是了为解决构造的循环依赖问题 但我们得先了解Spring提供得三级缓存解决方案中得三级缓存得具体意义
+		 *
+		 * singletonFactories：这是一个Map，它的键是bean的名字，值是一个ObjectFactory。
+		 * 这个ObjectFactory可以产生一个尚未完全初始化的bean实例。这个bean实例可能已经被实例化了（例如，它的构造函数已经被调用了），
+		 * 但它可能还没有经过属性注入、初始化方法调用等后续的生命周期步骤。
+		 * 当我们检测到一个可能的循环依赖时，我们会将这个尚未完全初始化的bean的工厂方法存放到这个Map中，这样，即使bean还没有完全初始化，
+		 * 其他bean也可以引用它。
+		 *
+		 * earlySingletonObjects：这也是一个Map，它的键是bean的名字，值是bean的实例。
+		 * 当我们需要一个尚未完全初始化的bean的引用时（例如，在解决循环依赖的时候），
+		 * 我们会从singletonFactories中获取它的ObjectFactory，然后调用这个工厂方法来产生bean的实例。
+		 * 这个实例被称为"早期引用"。一旦我们创建了这个早期引用，我们就将它存放到earlySingletonObjects中，
+		 * 这样，下次当我们再次需要这个引用时，就可以直接从这个Map中获取，而不需要再次调用工厂方法。
+		 *
+		 * 这种设计策略使得Spring在解决循环依赖的问题时更为灵活和高效。
+		 * 通过使用singletonFactories，我们可以确保只在绝对必要的时候产生早期引用，并且可以避免重复创建。
+		 * 而earlySingletonObjects则提供了一个缓存机制，使得我们可以快速地获取早期引用，而不需要每次都调用工厂方法。
+		 */
+		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences && isSingletonCurrentlyInCreation(beanName));
 		if (earlySingletonExposure) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
+			//注册生成earlyBean得FactoryMethod 到singletonFactory 容器中
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
@@ -1127,11 +1173,21 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	@Nullable
 	protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
 		Object bean = null;
-		if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
+		if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) { //校验是否已经执行自定义前置行为
 			// Make sure bean class is actually resolved at this point.
+			/**
+			 * 如果mbd定义不是合成的 主要Spring对于合成Bean的定义 例如Spring的内部工具类与Aop
+			 * 是不支持 实例化前的开口
+			 * 并存在bean postProcessors 方法
+			 */
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 				Class<?> targetType = determineTargetType(beanName, mbd);
 				if (targetType != null) {
+					/**
+					 *  执行specified Bean 中所有的前置方法
+					 *  但需要注意返回值 如果是NULL 就证明还是需要spring默认的初始化
+					 *  如果不是NULL 则返回了自定义已实例(自己负责)的Bean 就放弃了spring的默认初始化
+					 */
 					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
 					if (bean != null) {
 						bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);

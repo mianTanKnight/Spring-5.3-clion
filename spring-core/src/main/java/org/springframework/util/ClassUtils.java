@@ -190,12 +190,18 @@ public abstract class ClassUtils {
 	 * ClassLoader isn't accessible)
 	 * @see Thread#getContextClassLoader()
 	 * @see ClassLoader#getSystemClassLoader()
+	 *
+	 * Spring 是一个框架，通常被嵌入到 Web 应用中以提供各种服务，如依赖注入、AOP、事务管理等。
+	 * 当您将一个 Spring 应用部署到一个 Web 容器（如 Tomcat）中时，
+	 * 容器负责启动和运行应用。容器在启动应用时为应用设置了一个特定的上下文类加载器，用于加载应用中的类和资源。
+	 * 因为 Spring 的初始化和运行是由容器的线程完成的，这就确保了 Spring 可以使用容器设置的上下文类加载器来加载类和资源。
+	 * 这也是为什么 Spring 可以访问和加载由容器加载的资源的原因。
 	 */
 	@Nullable
 	public static ClassLoader getDefaultClassLoader() {
 		ClassLoader cl = null;
 		try {
-			cl = Thread.currentThread().getContextClassLoader();
+			cl = Thread.currentThread().getContextClassLoader(); //线程的classLoader 是由 JAVA EE 容器保证的
 		}
 		catch (Throwable ex) {
 			// Cannot access thread context ClassLoader - falling back...
